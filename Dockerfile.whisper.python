@@ -1,0 +1,27 @@
+# Use a base image
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+
+ENV TZ=Europe/Stockholm
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# Install Python 3.11
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.11 python3.11-venv python3.11-dev && \
+    apt-get install -y python3-pip
+
+ENV WHISPER_CUBLAS="1"
+ENV CMAKE_ARGS="-DWHISPER_CUBLAS=on"
+
+RUN pip install pydantic==1.10.10
+RUN pip install whisper-cpp-python[server]
+
+
+COPY entry.whisper.sh /entry.sh
+RUN chmod +x /entry.sh
+
+EXPOSE 8001
+CMD ["/entry.sh"]
+
+# docker run -d --gpus all --ulimit memlock=1024000 -e MODEL_FILE_PATH="/models/ggml-small.bin" -e N_THREADS=8 -v "/home/ken/models:/models" -p 8034:8000 magiccpp1/whisper.cpp.python:01

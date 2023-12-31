@@ -1,0 +1,28 @@
+# Use a base image
+FROM nvidia/cuda:12.2.0-devel-ubuntu22.04
+
+ENV TZ=Europe/Stockholm
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# Install Python 3.11
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.11 python3.11-venv python3.11-dev && \
+    apt-get install -y python3-pip
+
+
+ENV LLAMA_CUBLAS="1"
+ENV CMAKE_ARGS="-DLLAMA_CUBLAS=on"
+
+RUN pip install pydantic pydantic_settings sse_starlette starlette_context uvicorn fastapi
+RUN pip install llama-cpp-python==0.2.7 --force-reinstall --upgrade --no-cache-dir
+
+COPY entry.sh /entry.sh
+
+# Make the script executable
+RUN chmod +x /entry.sh
+
+EXPOSE 8000
+CMD ["/entry.sh"]
+# docker run -d --gpus all --ulimit memlock=1024000 -e MODEL_FILE_PATH="/models/llama-2-13b-chat.Q4_0.gguf" -e N_CTX=4096 -e N_GPU_LAYERS=20  -e N_THREADS=8 -v "/home/ken/models:/models" -p 8034:8000 magiccpp1/llama.cpp.python:01
